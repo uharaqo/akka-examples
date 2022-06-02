@@ -11,10 +11,9 @@ import akka.persistence.query.Offset
 import akka.projection.eventsourced.EventEnvelope
 import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.jdbc.scaladsl.JdbcProjection
-import akka.projection.scaladsl.{ AtLeastOnceProjection, SourceProvider }
+import akka.projection.scaladsl.AtLeastOnceProjection
 import akka.projection.{ ProjectionBehavior, ProjectionId }
 import org.apache.kafka.common.serialization.{ ByteArraySerializer, StringSerializer }
-import shopping.cart.ShoppingCartTags
 import shopping.cart.es.ShoppingCart
 import shopping.cart.repository.ScalikeJdbcSession
 
@@ -25,8 +24,8 @@ object PublishEventsProjection {
 
     ShardedDaemonProcess(system).init(
       name = "PublishEventsProjection",
-      ShoppingCartTags.size,
-      index => ProjectionBehavior(newProjection(system, topic, ShoppingCartTags.get(index))),
+      ShoppingCart.Tags.size,
+      index => ProjectionBehavior(newProjection(system, topic, ShoppingCart.Tags.get(index))),
       ShardedDaemonProcessSettings(system),
       Some(ProjectionBehavior.Stop)
     )

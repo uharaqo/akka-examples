@@ -33,5 +33,7 @@ class ItemPopularityRepositoryImpl extends ItemPopularityRepository {
     }
 
   private def select(itemId: String)(implicit dbSession: DBSession): Option[Long] =
-    sql"SELECT count FROM item_popularity WHERE itemid = $itemId".map(_.long("count")).toOption() // .apply()
+    sql"SELECT count FROM item_popularity WHERE itemid = $itemId"
+      .map(_.long("count"))
+      .toOption() // .apply()
 }

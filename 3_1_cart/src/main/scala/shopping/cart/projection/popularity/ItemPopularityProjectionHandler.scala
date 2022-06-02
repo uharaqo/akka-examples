@@ -1,4 +1,4 @@
-package shopping.cart.projection
+package shopping.cart.projection.popularity
 
 import akka.actor.typed.ActorSystem
 import akka.projection.eventsourced.EventEnvelope

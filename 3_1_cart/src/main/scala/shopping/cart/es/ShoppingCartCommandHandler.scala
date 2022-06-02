@@ -6,15 +6,22 @@ import ShoppingCart._
 
 import java.time.Instant
 
+/**
+ * The command handler validates and translates commands to events
+ */
 class ShoppingCartCommandHandler {
 
-  def handleCommand(cartId: String, state: State, command: Command): ReplyEffect[Event, State] =
+  def handleCommand(cartId: String, state: ShoppingCartState, command: Command): ReplyEffect[Event, ShoppingCartState] =
     if (state.isCheckedOut)
-      checkedOutShoppingCart(cartId, state, command)
+      checkedOutShoppingCart(state, command)
     else
       openShoppingCart(cartId, state, command)
 
-  private def openShoppingCart(cartId: String, state: State, command: Command): ReplyEffect[Event, State] =
+  private def openShoppingCart(
+      cartId: String,
+      state: ShoppingCartState,
+      command: Command
+  ): ReplyEffect[Event, ShoppingCartState] =
     command match {
       case Get(replyTo) =>
         Effect.reply(replyTo)(state.toSummary)
@@ -60,7 +67,10 @@ class ShoppingCartCommandHandler {
           )
     }
 
-  private def checkedOutShoppingCart(cartId: String, state: State, command: Command): ReplyEffect[Event, State] =
+  private def checkedOutShoppingCart(
+      state: ShoppingCartState,
+      command: Command
+  ): ReplyEffect[Event, ShoppingCartState] =
     command match {
       case Get(replyTo) =>
         Effect.reply(replyTo)(state.toSummary)

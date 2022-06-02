@@ -1,13 +1,12 @@
 package shopping.cart.grpc
 
 import akka.actor.typed.{ ActorRef, ActorSystem, DispatcherSelector }
-import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
 import akka.pattern.StatusReply
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.es.ShoppingCart
+import shopping.cart.es.{ ShoppingCart, ShoppingCartCluster }
 import shopping.cart.proto
 import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
 
@@ -24,7 +23,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_], itemPopularityRepository: 
   implicit private val timeout: Timeout =
     Timeout.create(system.settings.config.getDuration("shopping-cart-service.ask-timeout"))
 
-  private val sharding = ClusterSharding(system)
+  private val cluster = new ShoppingCartCluster(system)
 
   // for projection
   private val blockingJdbcExecutor: ExecutionContext =
@@ -35,7 +34,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_], itemPopularityRepository: 
   // apis
   override def addItem(in: proto.AddItemRequest): Future[proto.Cart] = {
     logger.info("addItem {} to cart {}", in.itemId, in.cartId)
-    val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
+    val entityRef = cluster.entityRefFor(in.cartId)
     val reply: Future[ShoppingCart.Summary] =
       entityRef.askWithStatus(ShoppingCart.AddItem(in.itemId, in.quantity, _))
     convertError(reply.map(_.toProtoCart))
@@ -44,7 +43,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_], itemPopularityRepository: 
 
   override def updateItem(in: proto.UpdateItemRequest): Future[proto.Cart] = {
     logger.info("updateItem {} to cart {}", in.itemId, in.cartId)
-    val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
+    val entityRef = cluster.entityRefFor(in.cartId)
 
     def command(replyTo: ActorRef[StatusReply[ShoppingCart.Summary]]) =
       if (in.quantity == 0)
@@ -58,14 +57,14 @@ class ShoppingCartServiceImpl(system: ActorSystem[_], itemPopularityRepository: 
 
   override def checkout(in: proto.CheckoutRequest): Future[proto.Cart] = {
     logger.info("checkout {}", in.cartId)
-    val entityRef                           = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
+    val entityRef                           = cluster.entityRefFor(in.cartId)
     val reply: Future[ShoppingCart.Summary] = entityRef.askWithStatus(ShoppingCart.Checkout)
     convertError(reply.map(_.toProtoCart))
   }
 
   override def getCart(in: proto.GetCartRequest): Future[proto.Cart] = {
     logger.info("getCart {}", in.cartId)
-    val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
+    val entityRef = cluster.entityRefFor(in.cartId)
     val response =
       entityRef.ask(ShoppingCart.Get).map { cart =>
         if (cart.items.isEmpty)

@@ -14,7 +14,7 @@ import akka.projection.testkit.scaladsl.ProjectionTestKit
 import akka.stream.scaladsl.Source
 import org.scalatest.wordspec.AnyWordSpecLike
 import shopping.cart.es.ShoppingCart
-import shopping.cart.projection.ItemPopularityProjectionHandler
+import shopping.cart.projection.popularity.ItemPopularityProjectionHandler
 import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
 
 object ItemPopularityProjectionSpec {

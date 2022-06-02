@@ -2,17 +2,16 @@ package shopping.cart
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity }
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcClientSettings
 import akka.grpc.scaladsl.{ ServerReflection, ServiceHandler }
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
-import shopping.cart.es.ShoppingCart
-import shopping.cart.es.ShoppingCart.EntityKey
+import shopping.cart.es.{ ShoppingCartActor, ShoppingCartCluster }
 import shopping.cart.grpc.{ GrpcServer, ShoppingCartServiceImpl }
-import shopping.cart.projection.ItemPopularityProjection
 import shopping.cart.projection.order.SendOrderProjection
+import shopping.cart.projection.popularity.ItemPopularityProjection
 import shopping.cart.projection.publish.PublishEventsProjection
 import shopping.cart.proto.{ ShoppingCartService, ShoppingCartServiceHandler }
 import shopping.cart.repository.{ ItemPopularityRepositoryImpl, ScalikeJdbcSetup }
@@ -22,7 +21,7 @@ import scala.util.control.NonFatal
 
 object Main {
 
-  val logger = LoggerFactory.getLogger("shopping.cart.Main")
+  private val logger = LoggerFactory.getLogger("shopping.cart.Main")
 
   def main(args: Array[String]): Unit = {
     logger.info("Starting Akka")
@@ -51,7 +50,7 @@ object Main {
     ClusterBootstrap(system).start()
 
     logger.info("Starting ShoppingCart")
-    ClusterSharding(system).init(Entity(EntityKey)(ctx => ShoppingCart(ctx.entityId)))
+    ClusterSharding(system).init(ShoppingCartCluster.newShardedEntity())
 
     logger.info("Starting Projection")
     ScalikeJdbcSetup.init(system)
