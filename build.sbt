@@ -11,8 +11,7 @@ val AlpakkaKafkaVersion        = "3.0.0"
 val AkkaProjectionVersion      = "1.2.4"
 val ScalikeJdbcVersion         = "4.0.0"
 
-//lazy val root = (project in file(".")).aggregate(cart)
-lazy val root = (project in file(".")).aggregate(cart, cartAnalytics)
+lazy val root = (project in file(".")).aggregate(cart, cartAnalytics, cartOrder)
 
 //lazy val actors = (project in file("1_akka_actors"))
 //  .settings(
@@ -50,7 +49,7 @@ val baseSettings = Seq(
   Global / cancelable := false // ctrl-c
 )
 
-lazy val cart = (project in file("3_1_cart"))
+lazy val cart = (project in file("2_1_cart"))
   .settings(baseSettings)
   .settings(
     name := "shopping-cart-service",
@@ -99,13 +98,13 @@ lazy val cart = (project in file("3_1_cart"))
   .enablePlugins(AkkaGrpcPlugin)
 //  .enablePlugins(JavaAppPackaging)
 
-val cartAnalytics = (project in file("3_2_cart_analytics"))
+val cartAnalytics = (project in file("2_2_cart_analytics"))
   .settings(
     name := "shopping-cart-analytics"
   )
   .dependsOn(cart)
 
-val cartOrder = (project in file("3_3_cart_order"))
+val cartOrder = (project in file("2_3_cart_order"))
   .settings(
     name := "shopping-cart-order"
   )

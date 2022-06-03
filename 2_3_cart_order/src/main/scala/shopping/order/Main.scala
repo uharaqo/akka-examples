@@ -16,8 +16,8 @@ object Main {
   private val logger = LoggerFactory.getLogger("shopping.order.Main")
 
   def main(args: Array[String]): Unit = {
-    val system = ActorSystem[Nothing](Behaviors.empty, "ShoppingOrderService")
-    try init(system)
+    implicit val system: ActorSystem[Nothing] = ActorSystem[Nothing](Behaviors.empty, "ShoppingOrderService")
+    try init()
     catch {
       case NonFatal(e) =>
         logger.error("Terminating due to initialization failure.", e)
@@ -25,7 +25,7 @@ object Main {
     }
   }
 
-  def init(system: ActorSystem[_]): Unit = {
+  def init()(implicit system: ActorSystem[_]): Unit = {
     AkkaManagement(system).start()
     ClusterBootstrap(system).start()
 
@@ -36,10 +36,10 @@ object Main {
     val grpcService = new ShoppingOrderServiceImpl
     val service =
       ServiceHandler.concatOrNotFound(
-        proto.ShoppingOrderServiceHandler.partial(grpcService)(system),
+        proto.ShoppingOrderServiceHandler.partial(grpcService),
         // ServerReflection enabled to support grpcurl without import-path and proto parameters
-        ServerReflection.partial(List(proto.ShoppingOrderService))(system)
+        ServerReflection.partial(List(proto.ShoppingOrderService))
       )
-    GrpcServer.start(system, service, grpcInterface, grpcPort)
+    GrpcServer.start(service, grpcInterface, grpcPort)
   }
 }
