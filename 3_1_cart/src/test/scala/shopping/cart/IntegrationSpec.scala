@@ -1,12 +1,10 @@
 package shopping.cart
 
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
 import akka.actor.CoordinatedShutdown
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.ActorSystem
@@ -23,7 +21,7 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{ BeforeAndAfterAll, Ignore }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration
 import org.scalatest.concurrent.ScalaFutures
@@ -80,6 +78,7 @@ object IntegrationSpec {
   }
 }
 
+@Ignore
 class IntegrationSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with ScalaFutures with Eventually {
   import IntegrationSpec.TestNodeFixture
 
@@ -194,74 +193,74 @@ class IntegrationSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       initializeKafkaTopicProbe()
     }
 
-//    "update and project from different nodes via gRPC" in {
-//      // add from client1
-//      val response1    = testNode1.client.addItem(proto.AddItemRequest(cartId = "cart-1", itemId = "foo", quantity = 42))
-//      val updatedCart1 = response1.futureValue
-//      updatedCart1.items.head.itemId should ===("foo")
-//      updatedCart1.items.head.quantity should ===(42)
-//
-//      // first may take longer time
-//      val published1 =
-//        kafkaTopicProbe.expectMessageType[proto.ItemAdded](20.seconds)
-//      published1.cartId should ===("cart-1")
-//      published1.itemId should ===("foo")
-//      published1.quantity should ===(42)
-//
-//      // add from client2
-//      val response2    = testNode2.client.addItem(proto.AddItemRequest(cartId = "cart-2", itemId = "bar", quantity = 17))
-//      val updatedCart2 = response2.futureValue
-//      updatedCart2.items.head.itemId should ===("bar")
-//      updatedCart2.items.head.quantity should ===(17)
-//
-//      // update from client2
-//      val response3 =
-//        testNode2.client.updateItem(
-//          proto
-//            .UpdateItemRequest(cartId = "cart-2", itemId = "bar", quantity = 18)
-//        )
-//      val updatedCart3 = response3.futureValue
-//      updatedCart3.items.head.itemId should ===("bar")
-//      updatedCart3.items.head.quantity should ===(18)
-//
-//      // ItemPopularityProjection has consumed the events and updated db
-//      eventually {
-//        testNode1.client
-//          .getItemPopularity(proto.GetItemPopularityRequest(itemId = "foo"))
-//          .futureValue
-//          .popularityCount should ===(42)
-//
-//        testNode1.client
-//          .getItemPopularity(proto.GetItemPopularityRequest(itemId = "bar"))
-//          .futureValue
-//          .popularityCount should ===(18)
-//      }
-//
-//      val published2 =
-//        kafkaTopicProbe.expectMessageType[proto.ItemAdded]
-//      published2.cartId should ===("cart-2")
-//      published2.itemId should ===("bar")
-//      published2.quantity should ===(17)
-//
-//      val published3 =
-//        kafkaTopicProbe.expectMessageType[proto.ItemQuantityAdjusted]
-//      published3.cartId should ===("cart-2")
-//      published3.itemId should ===("bar")
-//      published3.quantity should ===(18)
-//
-//      val response4 =
-//        testNode2.client.checkout(proto.CheckoutRequest(cartId = "cart-2"))
-//      response4.futureValue.checkedOut should ===(true)
-//
-//      val orderRequest =
-//        orderServiceProbe.expectMessageType[OrderRequest]
-//      orderRequest.cartId should ===("cart-2")
-//      orderRequest.items.head.itemId should ===("bar")
-//      orderRequest.items.head.quantity should ===(18)
-//
-//      val published4 =
-//        kafkaTopicProbe.expectMessageType[proto.CheckedOut]
-//      published4.cartId should ===("cart-2")
-//    }
+    "update and project from different nodes via gRPC" in {
+      // add from client1
+      val response1    = testNode1.client.addItem(proto.AddItemRequest(cartId = "cart-1", itemId = "foo", quantity = 42))
+      val updatedCart1 = response1.futureValue
+      updatedCart1.items.head.itemId should ===("foo")
+      updatedCart1.items.head.quantity should ===(42)
+
+      // first may take longer time
+      val published1 =
+        kafkaTopicProbe.expectMessageType[proto.ItemAdded](20.seconds)
+      published1.cartId should ===("cart-1")
+      published1.itemId should ===("foo")
+      published1.quantity should ===(42)
+
+      // add from client2
+      val response2    = testNode2.client.addItem(proto.AddItemRequest(cartId = "cart-2", itemId = "bar", quantity = 17))
+      val updatedCart2 = response2.futureValue
+      updatedCart2.items.head.itemId should ===("bar")
+      updatedCart2.items.head.quantity should ===(17)
+
+      // update from client2
+      val response3 =
+        testNode2.client.updateItem(
+          proto
+            .UpdateItemRequest(cartId = "cart-2", itemId = "bar", quantity = 18)
+        )
+      val updatedCart3 = response3.futureValue
+      updatedCart3.items.head.itemId should ===("bar")
+      updatedCart3.items.head.quantity should ===(18)
+
+      // ItemPopularityProjection has consumed the events and updated db
+      eventually {
+        testNode1.client
+          .getItemPopularity(proto.GetItemPopularityRequest(itemId = "foo"))
+          .futureValue
+          .popularityCount should ===(42)
+
+        testNode1.client
+          .getItemPopularity(proto.GetItemPopularityRequest(itemId = "bar"))
+          .futureValue
+          .popularityCount should ===(18)
+      }
+
+      val published2 =
+        kafkaTopicProbe.expectMessageType[proto.ItemAdded]
+      published2.cartId should ===("cart-2")
+      published2.itemId should ===("bar")
+      published2.quantity should ===(17)
+
+      val published3 =
+        kafkaTopicProbe.expectMessageType[proto.ItemQuantityAdjusted]
+      published3.cartId should ===("cart-2")
+      published3.itemId should ===("bar")
+      published3.quantity should ===(18)
+
+      val response4 =
+        testNode2.client.checkout(proto.CheckoutRequest(cartId = "cart-2"))
+      response4.futureValue.checkedOut should ===(true)
+
+      val orderRequest =
+        orderServiceProbe.expectMessageType[OrderRequest]
+      orderRequest.cartId should ===("cart-2")
+      orderRequest.items.head.itemId should ===("bar")
+      orderRequest.items.head.quantity should ===(18)
+
+      val published4 =
+        kafkaTopicProbe.expectMessageType[proto.CheckedOut]
+      published4.cartId should ===("cart-2")
+    }
   }
 }

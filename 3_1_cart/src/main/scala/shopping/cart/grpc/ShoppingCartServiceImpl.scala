@@ -1,29 +1,30 @@
 package shopping.cart.grpc
 
-import akka.actor.typed.{ ActorRef, ActorSystem, DispatcherSelector }
+import akka.actor.typed.{ ActorRef, DispatcherSelector }
 import akka.grpc.GrpcServiceException
 import akka.pattern.StatusReply
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.es.{ ShoppingCart, ShoppingCartCluster }
+import shopping.cart.es.{ ShoppingCart, ShoppingCartContext }
 import shopping.cart.proto
 import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
 
 import java.util.concurrent.TimeoutException
 import scala.concurrent.{ ExecutionContext, Future }
 
-class ShoppingCartServiceImpl(system: ActorSystem[_], itemPopularityRepository: ItemPopularityRepository)
+class ShoppingCartServiceImpl(context: ShoppingCartContext, itemPopularityRepository: ItemPopularityRepository)
     extends proto.ShoppingCartService {
 
-  import system.executionContext
+  import context.system.executionContext
 
   private val logger = LoggerFactory.getLogger(getClass)
 
+  private val system = context.system
   implicit private val timeout: Timeout =
     Timeout.create(system.settings.config.getDuration("shopping-cart-service.ask-timeout"))
 
-  private val cluster = new ShoppingCartCluster(system)
+  private val cluster = context.cluster
 
   // for projection
   private val blockingJdbcExecutor: ExecutionContext =

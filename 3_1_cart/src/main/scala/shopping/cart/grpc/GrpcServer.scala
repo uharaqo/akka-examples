@@ -11,12 +11,11 @@ import scala.util.{ Failure, Success }
 object GrpcServer {
 
   def start(
-      system: ActorSystem[_],
       grpcService: HttpRequest => Future[HttpResponse],
       interface: String,
       port: Int
-  ): Unit = {
-    implicit val sys: ActorSystem[_]  = system
+  )(implicit system: ActorSystem[_]): Unit = {
+
     implicit val ec: ExecutionContext = system.executionContext
 
     val bound =

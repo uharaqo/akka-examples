@@ -8,7 +8,7 @@ import akka.grpc.scaladsl.{ ServerReflection, ServiceHandler }
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
-import shopping.cart.es.{ ShoppingCartActor, ShoppingCartCluster }
+import shopping.cart.es.{ ShoppingCartCluster, ShoppingCartContext }
 import shopping.cart.grpc.{ GrpcServer, ShoppingCartServiceImpl }
 import shopping.cart.projection.order.SendOrderProjection
 import shopping.cart.projection.popularity.ItemPopularityProjection
@@ -49,22 +49,26 @@ object Main {
     logger.info("Starting AkkaCluster")
     ClusterBootstrap(system).start()
 
+    val clusterSize                           = 5
+    val cluster                               = ShoppingCartCluster("ShoppingCart", clusterSize)(system)
+    implicit val context: ShoppingCartContext = new ShoppingCartContext(system, cluster)
+
     logger.info("Starting ShoppingCart")
-    ClusterSharding(system).init(ShoppingCartCluster.newShardedEntity())
+    ClusterSharding(system).init(context.cluster.newShardedEntity())
 
     logger.info("Starting Projection")
     ScalikeJdbcSetup.init(system)
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
-    ItemPopularityProjection.init(system, itemPopularityRepository)
+    ItemPopularityProjection.init(itemPopularityRepository)
 
     logger.info("Starting Projection PublishEvents")
-    PublishEventsProjection.init(system)
+    PublishEventsProjection.init()
 
     logger.info("Starting Projection SendOrder")
-    SendOrderProjection.init(system, orderService)
+    SendOrderProjection.init(orderService)
 
     logger.info("Starting HTTP server")
-    startGrpcServer(system, itemPopularityRepository)
+    startGrpcServer(itemPopularityRepository)
   }
 
   protected def newOrderServiceClientSettings(system: ActorSystem[_]): GrpcClientSettings = {
@@ -73,15 +77,19 @@ object Main {
     GrpcClientSettings.connectToServiceAt(host, port)(system).withTls(false)
   }
 
-  def startGrpcServer(system: ActorSystem[_], itemPopularityRepository: ItemPopularityRepositoryImpl): Unit = {
-    val host        = system.settings.config.getString("shopping-cart-service.grpc.interface")
-    val port        = system.settings.config.getInt("shopping-cart-service.grpc.port")
-    val grpcService = new ShoppingCartServiceImpl(system, itemPopularityRepository)
+  def startGrpcServer(
+      itemPopularityRepository: ItemPopularityRepositoryImpl
+  )(implicit context: ShoppingCartContext): Unit = {
+
+    implicit val system: ActorSystem[_] = context.system
+    val host                            = system.settings.config.getString("shopping-cart-service.grpc.interface")
+    val port                            = system.settings.config.getInt("shopping-cart-service.grpc.port")
+    val grpcService                     = new ShoppingCartServiceImpl(context, itemPopularityRepository)
     val service =
       ServiceHandler.concatOrNotFound(
-        ShoppingCartServiceHandler.partial(grpcService)(system),
-        ServerReflection.partial(List(ShoppingCartService))(system)
+        ShoppingCartServiceHandler.partial(grpcService),
+        ServerReflection.partial(List(ShoppingCartService))
       )
-    GrpcServer.start(system, service, host, port)
+    GrpcServer.start(service, host, port)
   }
 }

@@ -81,8 +81,7 @@ class ItemPopularityProjectionSpec extends ScalaTestWithActorTestKit with AnyWor
         TestProjection[Offset, EventEnvelope[ShoppingCart.Event]](
           projectionId,
           sourceProvider,
-          () =>
-            toAsyncHandler(new ItemPopularityProjectionHandler("carts-0", system, repository))(system.executionContext)
+          () => toAsyncHandler(new ItemPopularityProjectionHandler("carts-0", repository))(system.executionContext)
         )
 
       projectionTestKit.run(projection) {
@@ -90,5 +89,4 @@ class ItemPopularityProjectionSpec extends ScalaTestWithActorTestKit with AnyWor
       }
     }
   }
-
 }

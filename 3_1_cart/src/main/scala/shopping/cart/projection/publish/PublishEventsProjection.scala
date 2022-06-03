@@ -14,41 +14,43 @@ import akka.projection.jdbc.scaladsl.JdbcProjection
 import akka.projection.scaladsl.AtLeastOnceProjection
 import akka.projection.{ ProjectionBehavior, ProjectionId }
 import org.apache.kafka.common.serialization.{ ByteArraySerializer, StringSerializer }
-import shopping.cart.es.ShoppingCart
+import shopping.cart.es.{ ShoppingCart, ShoppingCartContext }
 import shopping.cart.repository.ScalikeJdbcSession
 
 object PublishEventsProjection {
 
-  def init(system: ActorSystem[_]): Unit = {
-    val topic = system.settings.config.getString("shopping-cart-service.kafka.topic")
+  def init()(implicit context: ShoppingCartContext): Unit = {
+    val system = context.system
+    val topic  = system.settings.config.getString("shopping-cart-service.kafka.topic")
 
     ShardedDaemonProcess(system).init(
       name = "PublishEventsProjection",
-      ShoppingCart.Tags.size,
-      index => ProjectionBehavior(newProjection(system, topic, ShoppingCart.Tags.get(index))),
+      context.cluster.size,
+      index => ProjectionBehavior(newProjection(index, topic)),
       ShardedDaemonProcessSettings(system),
       Some(ProjectionBehavior.Stop)
     )
   }
 
-  private def newProjection(
-      system: ActorSystem[_],
-      topic: String,
-      tag: String,
+  private def newProjection(index: Int, topic: String)(
+      implicit context: ShoppingCartContext
   ): AtLeastOnceProjection[Offset, EventEnvelope[ShoppingCart.Event]] = {
-    val producer = newProducer(system)
+
+    implicit val system: ActorSystem[_] = context.system
+    val tag                             = context.getTag(index)
+    val producer                        = newProducer()
 
     JdbcProjection.atLeastOnceAsync(
       ProjectionId("PublishEventsProjection", tag),
       EventSourcedProvider.eventsByTag[ShoppingCart.Event](system, JdbcReadJournal.Identifier, tag),
-      handler = () => new PublishEventsProjectionHandler(system, topic, producer),
+      handler = () => new PublishEventsProjectionHandler(topic, producer),
       sessionFactory = () => new ScalikeJdbcSession()
-    )(system)
+    )
   }
 
-  private def newProducer(system: ActorSystem[_]): SendProducer[String, Array[Byte]] = {
+  private def newProducer()(implicit system: ActorSystem[_]): SendProducer[String, Array[Byte]] = {
     val producerSettings = ProducerSettings(system, new StringSerializer, new ByteArraySerializer)
-    val sendProducer     = SendProducer(producerSettings)(system)
+    val sendProducer     = SendProducer(producerSettings)
     CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate, "close-sendProducer") {
       () => sendProducer.close()
     }

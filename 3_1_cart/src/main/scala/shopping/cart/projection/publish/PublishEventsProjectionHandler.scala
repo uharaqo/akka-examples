@@ -14,10 +14,10 @@ import shopping.cart.es.ShoppingCart
 import shopping.cart.proto._
 
 class PublishEventsProjectionHandler(
-    system: ActorSystem[_],
     topic: String,
     sendProducer: SendProducer[String, Array[Byte]],
-) extends Handler[EventEnvelope[ShoppingCart.Event]] {
+)(implicit system: ActorSystem[_])
+    extends Handler[EventEnvelope[ShoppingCart.Event]] {
 
   private val log = LoggerFactory.getLogger(getClass)
 

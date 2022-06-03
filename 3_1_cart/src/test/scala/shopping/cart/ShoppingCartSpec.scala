@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
 import shopping.cart.es.ShoppingCart._
-import shopping.cart.es.{ ShoppingCartActor, ShoppingCartState }
+import shopping.cart.es.{ ShoppingCartActor, ShoppingCartCluster, ShoppingCartContext, ShoppingCartState }
 
 object ShoppingCartSpec {
   val config = ConfigFactory
@@ -28,7 +28,7 @@ class ShoppingCartSpec
   private val eventSourcedTestKit =
     EventSourcedBehaviorTestKit[Command, Event, ShoppingCartState](
       system,
-      ShoppingCartActor(cartId)
+      ShoppingCartActor(cartId)(new ShoppingCartContext(system, ShoppingCartCluster.disabled()))
     )
 
   override protected def beforeEach(): Unit = {

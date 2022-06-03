@@ -1,13 +1,12 @@
 package shopping.cart.projection.popularity
 
-import akka.actor.typed.ActorSystem
 import akka.projection.eventsourced.EventEnvelope
 import akka.projection.jdbc.scaladsl.JdbcHandler
 import org.slf4j.LoggerFactory
 import shopping.cart.es.ShoppingCart
 import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
 
-class ItemPopularityProjectionHandler(tag: String, system: ActorSystem[_], repo: ItemPopularityRepository)
+class ItemPopularityProjectionHandler(tag: String, repo: ItemPopularityRepository)
     extends JdbcHandler[EventEnvelope[ShoppingCart.Event], ScalikeJdbcSession]() {
 
   private val log = LoggerFactory.getLogger(getClass)

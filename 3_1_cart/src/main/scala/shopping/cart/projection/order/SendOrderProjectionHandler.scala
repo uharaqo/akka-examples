@@ -6,23 +6,22 @@ import akka.projection.eventsourced.EventEnvelope
 import akka.projection.scaladsl.Handler
 import akka.util.Timeout
 import org.slf4j.LoggerFactory
-import shopping.cart.es.{ ShoppingCart, ShoppingCartCluster }
+import shopping.cart.es.{ ShoppingCart, ShoppingCartCluster, ShoppingCartContext }
 import shopping.order.proto._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class SendOrderProjectionHandler(
-    system: ActorSystem[_],
-    orderService: ShoppingOrderService
-) extends Handler[EventEnvelope[ShoppingCart.Event]] {
+class SendOrderProjectionHandler(orderService: ShoppingOrderService)(implicit context: ShoppingCartContext)
+    extends Handler[EventEnvelope[ShoppingCart.Event]] {
 
   private val log = LoggerFactory.getLogger(getClass)
 
+  private val system                        = context.system
   implicit private val ec: ExecutionContext = system.executionContext
   implicit private val timeout: Timeout =
     Timeout.create(system.settings.config.getDuration("shopping-cart-service.ask-timeout"))
 
-  private val cluster = new ShoppingCartCluster(system)
+  private val cluster = context.cluster
 
   override def process(envelope: EventEnvelope[ShoppingCart.Event]): Future[Done] =
     envelope.event match {

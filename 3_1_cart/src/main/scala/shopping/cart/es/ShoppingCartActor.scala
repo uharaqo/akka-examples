@@ -15,15 +15,15 @@ object ShoppingCartActor {
   private val commandHandler = new ShoppingCartCommandHandler()
   private val eventHandler   = new ShoppingCartState.EventHandler()
 
-  def apply(cartId: String): Behavior[Command] =
+  def apply(cartId: String)(implicit context: ShoppingCartContext): Behavior[Command] =
     EventSourcedBehavior
       .withEnforcedReplies[Command, Event, ShoppingCartState](
-        persistenceId = PersistenceId(ShoppingCartCluster.entityName, cartId),
+        persistenceId = PersistenceId(context.cluster.entityName, cartId),
         emptyState = ShoppingCartState.empty,
         commandHandler = (state, command) => commandHandler.handleCommand(cartId, state, command),
         eventHandler = eventHandler.handleEvent
       )
-      .withTagger(_ => Set(ShoppingCart.Tags.forText(cartId)))
+      .withTagger(_ => Set(context.getTag(cartId)))
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 3))
       .onPersistFailure(SupervisorStrategy.restartWithBackoff(200.millis, 5.seconds, 0.1))
 }
